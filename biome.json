@@ -5,9 +5,7 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
-  "files": {
-    "includes": ["route-tree.gen.ts", "temp.ts"]
-  },
+  "files": {},
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -29,6 +27,14 @@
   "css": {
     "parser": {
       "tailwindDirectives": true
+    }
+  },
+  "html": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineWidth": 80
     }
   },
   "assist": {

@@ -1,7 +1,7 @@
+import path from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
-import path from "node:path"
 import { defineConfig } from "vite"
 
 // https://vite.dev/config/
@@ -24,6 +24,7 @@ export default defineConfig({
       "@ui": path.resolve(__dirname, "./src/components/ui"),
       "@lib": path.resolve(__dirname, "./src/lib"),
       "@hooks": path.resolve(__dirname, "./src/hooks"),
+      "@store": path.resolve(__dirname, "./src/store"),
     },
   },
 })
