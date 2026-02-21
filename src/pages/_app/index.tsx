@@ -1,5 +1,5 @@
+import { Canvas } from "@components/canvas"
 import { Header } from "@components/header"
-import { useMode } from "@store/mode"
 import { createFileRoute } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/_app/")({
@@ -7,12 +7,10 @@ export const Route = createFileRoute("/_app/")({
 })
 
 export function App() {
-  const { mode } = useMode()
-
   return (
     <main className="min-h-dvh">
       <Header />
-      {mode}
+      <Canvas />
     </main>
   )
 }
