@@ -1,10 +1,10 @@
+import { useAutomaton } from "@store/automaton"
 import { useEdgeEditing } from "@store/edge-editing"
 import {
   BaseEdge,
   EdgeLabelRenderer,
   type EdgeProps,
   getSmoothStepPath,
-  useReactFlow,
 } from "@xyflow/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
@@ -20,7 +20,7 @@ export function StageTransition({
   label,
   selected,
 }: EdgeProps) {
-  const { setEdges } = useReactFlow()
+  const updateEdgeLabel = useAutomaton((s) => s.updateEdgeLabel)
 
   const editingEdgeId = useEdgeEditing((s) => s.editingEdgeId)
   const stopEditing = useEdgeEditing((s) => s.stopEditing)
@@ -64,14 +64,10 @@ export function StageTransition({
   const saveLabel = useCallback(
     (value: string) => {
       const trimmed = value.trim()
-      setEdges((eds) =>
-        eds.map((edge) =>
-          edge.id === id ? { ...edge, label: trimmed || undefined } : edge,
-        ),
-      )
+      updateEdgeLabel(id, trimmed || "ε")
       stopEditing()
     },
-    [id, setEdges, stopEditing],
+    [id, updateEdgeLabel, stopEditing],
   )
 
   const handleDoubleClick = useCallback(() => {
