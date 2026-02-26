@@ -23,6 +23,7 @@ import { type MouseEvent, useCallback } from "react"
 import { StageTransition, StateNode, type StateNodeType } from "./state"
 
 import "@xyflow/react/dist/style.css"
+import { cn } from "@/lib/utils"
 import { Toolbar } from "./toolbar"
 import { TransitionTable } from "./transition-table"
 
@@ -211,8 +212,16 @@ function CanvasInner() {
     activeTool === "delete" ||
     activeTool === "transition"
 
+  const showTransitionTable = false
+
   return (
-    <div className="h-[calc(100vh-64px)]">
+    <div
+      className={cn(
+        "h-[calc(100vh-64px)]",
+        activeTool === "select" ? "cursor-grab" : "cursor-default",
+        activeTool.match(/state/) ? "cursor-crosshair" : "cursor-default",
+      )}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -236,7 +245,7 @@ function CanvasInner() {
         fitView
       >
         <Toolbar />
-        <TransitionTablePanel />
+        {showTransitionTable && <TransitionTablePanel />}
         <Background />
         <Controls />
       </ReactFlow>
