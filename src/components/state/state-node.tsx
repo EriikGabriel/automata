@@ -3,7 +3,7 @@ import { useAutomaton } from "@store/automaton"
 import { useNodeEditing } from "@store/node-editing"
 import { useToolbar } from "@store/toolbar"
 import { Handle, type Node, type NodeProps, Position } from "@xyflow/react"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 
 type StateNodeData = {
   label: string
@@ -19,6 +19,45 @@ const positions = [
   { position: Position.Left, id: "left" },
 ]
 
+type ArrowPosition = "left" | "right" | "diagonal"
+
+const arrowConfigs: Record<
+  ArrowPosition,
+  {
+    width: number
+    height: number
+    viewBox: string
+    className: string
+    linePath: string
+    arrowHeadPath: string
+  }
+> = {
+  left: {
+    width: 28,
+    height: 16,
+    viewBox: "0 0 28 16",
+    className: "absolute top-1/2 -translate-y-1/2 -left-7.5",
+    linePath: "M2 8 H20",
+    arrowHeadPath: "M17 3.5 L22.5 8 L17 12.5",
+  },
+  right: {
+    width: 28,
+    height: 16,
+    viewBox: "0 0 28 16",
+    className: "absolute top-1/2 -translate-y-1/2 -right-7.5 rotate-180",
+    linePath: "M2 8 H20",
+    arrowHeadPath: "M17 3.5 L22.5 8 L17 12.5",
+  },
+  diagonal: {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    className: "absolute -top-5 -left-5",
+    linePath: "M2 2 L18 18",
+    arrowHeadPath: "M13 21 L19 19 L21 13",
+  },
+}
+
 export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
   const { label, variant } = data
   const transitionSource = useToolbar((s) => s.transitionSource)
@@ -27,12 +66,31 @@ export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
   const editingNodeId = useNodeEditing((s) => s.editingNodeId)
   const stopEditing = useNodeEditing((s) => s.stopEditing)
   const updateNodeData = useAutomaton((s) => s.updateNodeData)
+  const edges = useAutomaton((s) => s.edges)
 
   const isEditing = editingNodeId === id
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isInitial = variant === "initial" || variant === "initial-final"
   const isFinal = variant === "final" || variant === "initial-final"
+
+  const arrowPosition = useMemo<ArrowPosition>(() => {
+    const hasLeftConnection = edges.some(
+      (e) =>
+        (e.target === id && e.targetHandle === "left") ||
+        (e.source === id && e.sourceHandle === "left"),
+    )
+
+    const hasRightConnection = edges.some(
+      (e) =>
+        (e.target === id && e.targetHandle === "right") ||
+        (e.source === id && e.sourceHandle === "right"),
+    )
+
+    if (!hasLeftConnection) return "left"
+    if (!hasRightConnection) return "right"
+    return "diagonal"
+  }, [id, edges])
 
   useEffect(() => {
     if (isEditing) {
@@ -79,21 +137,23 @@ export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
     [saveLabel],
   )
 
+  const config = arrowConfigs[arrowPosition]
+
   return (
-    <div className="group/state flex items-center justify-center">
+    <div className="group/state flex items-center justify-center relative">
       {isInitial && (
         <svg
-          width="28"
-          height="16"
-          viewBox="0 0 28 16"
+          width={config.width}
+          height={config.height}
+          viewBox={config.viewBox}
           fill="none"
-          className="mr-0.5"
+          className={config.className}
           role="img"
-          aria-labelledby="initial-arrow-title"
+          aria-labelledby={`initial-arrow-title-${id}`}
         >
-          <title id="initial-arrow-title">Initial state arrow</title>
+          <title id={`initial-arrow-title-${id}`}>Initial state arrow</title>
           <path
-            d="M2 8 H20"
+            d={config.linePath}
             strokeWidth="2"
             strokeLinecap="round"
             className={cn(
@@ -102,7 +162,7 @@ export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
             )}
           />
           <path
-            d="M17 3.5 L22.5 8 L17 12.5"
+            d={config.arrowHeadPath}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
