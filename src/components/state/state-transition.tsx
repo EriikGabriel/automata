@@ -27,6 +27,7 @@ export function StageTransition({
 
   const isEditing = editingEdgeId === id
   const labelStr = typeof label === "string" ? label : ""
+  const isEmpty = !labelStr.trim() || labelStr.trim() === "ε"
   const inputRef = useRef<HTMLInputElement>(null)
   const [hovered, setHovered] = useState(false)
 
@@ -124,6 +125,7 @@ export function StageTransition({
         id={id}
         path={edgePath}
         className={cn("stroke-2!", strokeClass)}
+        style={isEmpty ? { strokeDasharray: "6 3" } : undefined}
         markerEnd={`url(#${markerId})`}
       />
       <EdgeLabelRenderer>
