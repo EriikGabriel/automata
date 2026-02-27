@@ -1,5 +1,7 @@
 import { useAutomaton } from "@store/automaton"
+import { useCanvas } from "@store/canvas"
 import { useEdgeEditing } from "@store/edge-editing"
+import { useSelection } from "@store/selection"
 import { useToolbar } from "@store/toolbar"
 import {
   addEdge,
@@ -18,6 +20,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type Viewport,
 } from "@xyflow/react"
 import { type MouseEvent, useCallback } from "react"
 import { StageTransition, StateNode, type StateNodeType } from "./state"
@@ -55,13 +58,35 @@ function CanvasInner() {
   const setTransitionSource = useToolbar((s) => s.setTransitionSource)
   const clearTransitionSource = useToolbar((s) => s.clearTransitionSource)
 
+  const snapToGrid = useCanvas((s) => s.snapToGrid)
+  const setZoom = useCanvas((s) => s.setZoom)
+
+  const setSelectedNodeIds = useSelection((s) => s.setSelectedNodeIds)
+
   const { screenToFlowPosition } = useReactFlow()
+
+  const onViewportChange = useCallback(
+    (viewport: Viewport) => {
+      setZoom(viewport.zoom)
+    },
+    [setZoom],
+  )
 
   const onNodesChange = useCallback(
     (changes: NodeChange<StateNodeType>[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds))
+      setNodes((nds) => {
+        const updated = applyNodeChanges(changes, nds)
+
+        const hasSelectionChange = changes.some((c) => c.type === "select")
+        if (hasSelectionChange) {
+          const selectedIds = updated.filter((n) => n.selected).map((n) => n.id)
+          setSelectedNodeIds(selectedIds)
+        }
+
+        return updated
+      })
     },
-    [setNodes],
+    [setNodes, setSelectedNodeIds],
   )
 
   const onEdgesChange = useCallback(
@@ -111,6 +136,7 @@ function CanvasInner() {
     (_event: MouseEvent, node: Node) => {
       if (activeTool === "delete") {
         removeNode(node.id)
+        useSelection.getState().removeSelectedNodeId(node.id)
         return
       }
 
@@ -133,6 +159,7 @@ function CanvasInner() {
         }
 
         clearTransitionSource()
+        setActiveTool("select")
       }
     },
     [
@@ -143,6 +170,7 @@ function CanvasInner() {
       clearTransitionSource,
       startEditing,
       hasEdge,
+      setActiveTool,
     ],
   )
 
@@ -217,7 +245,7 @@ function CanvasInner() {
   return (
     <div
       className={cn(
-        "h-[calc(100vh-64px)]",
+        "h-[calc(100vh-64px-28px)] w-4/5",
         activeTool === "select" ? "cursor-grab" : "cursor-default",
         activeTool.match(/state/) ? "cursor-crosshair" : "cursor-default",
       )}
@@ -232,6 +260,7 @@ function CanvasInner() {
         onPaneClick={onPaneClick}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onViewportChange={onViewportChange}
         isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -242,6 +271,8 @@ function CanvasInner() {
         nodesDraggable={nodesDraggable}
         nodesConnectable={nodesConnectable}
         elementsSelectable={elementsSelectable}
+        snapToGrid={snapToGrid}
+        snapGrid={[20, 20]}
         fitView
       >
         <Toolbar />

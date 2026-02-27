@@ -9,6 +9,7 @@ import { useEdgeEditing } from "@store/edge-editing"
 import { useNodeEditing } from "@store/node-editing"
 import { type Tool, useToolbar } from "@store/toolbar"
 import { Button } from "@ui/button"
+import { Kbd } from "@ui/kbd"
 import { Separator } from "@ui/separator"
 import { ToggleGroup, ToggleGroupItem } from "@ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/tooltip"
@@ -64,95 +65,90 @@ export function Toolbar() {
       className="z-10 w-12 min-h-52 rounded-lg drop-shadow-lg absolute top-1/2 left-6 -translate-y-1/2   flex flex-col items-center gap-2 p-1 bg-white text-slate-600 *:hover:text-slate-600"
     >
       <Tooltip>
-        <TooltipTrigger>
-          <ToggleGroupItem
-            value="select"
-            className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
-          >
-            <HugeiconsIcon icon={Cursor02Icon} strokeWidth={2.5} />
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          Select —{" "}
-          <kbd className="ml-1 rounded bg-white/20 px-1 py-0.5 font-mono text-tiny">
-            A
-          </kbd>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger>
-          <ToggleGroupItem
-            value="state"
-            className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
-          >
-            <div className="flex items-center justify-center border-2 size-4 rounded-full border-slate-600 group-data-pressed/toggle:border-white" />
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          State —{" "}
-          <kbd className="ml-1 rounded bg-white/20 px-1 py-0.5 font-mono text-tiny">
-            S
-          </kbd>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger>
-          <ToggleGroupItem
-            value="state-final"
-            className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
-          >
-            <div className="flex items-center justify-center p-1 border-2 rounded-full border-slate-600 group-data-pressed/toggle:border-white">
-              <div className="size-2 rounded-full bg-slate-600 group-data-pressed/toggle:bg-white" />
-            </div>
-          </ToggleGroupItem>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          Final state —{" "}
-          <kbd className="ml-1 rounded bg-white/20 px-1 py-0.5 font-mono text-tiny">
-            F
-          </kbd>
-        </TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger>
-          <ToggleGroupItem
-            value="transition"
-            className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
-          >
-            <HugeiconsIcon
-              icon={ArrowRight02Icon}
-              strokeWidth={2}
-              className="size-5"
+        <TooltipTrigger
+          render={
+            <ToggleGroupItem
+              value="select"
+              className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
             />
-          </ToggleGroupItem>
+          }
+        >
+          <HugeiconsIcon icon={Cursor02Icon} strokeWidth={2.5} />
         </TooltipTrigger>
         <TooltipContent side="right">
-          Transition —{" "}
-          <kbd className="ml-1 rounded bg-white/20 px-1 py-0.5 font-mono text-tiny">
-            T
-          </kbd>
+          Select — <Kbd>A</Kbd>
+        </TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <ToggleGroupItem
+              value="state"
+              className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
+            />
+          }
+        >
+          <div className="flex items-center justify-center border-2 size-4 rounded-full border-slate-600 group-data-pressed/toggle:border-white" />
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          State — <Kbd>S</Kbd>
+        </TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <ToggleGroupItem
+              value="state-final"
+              className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
+            />
+          }
+        >
+          <div className="flex items-center justify-center p-1 border-2 rounded-full border-slate-600 group-data-pressed/toggle:border-white">
+            <div className="size-2 rounded-full bg-slate-600 group-data-pressed/toggle:bg-white" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          Final state — <Kbd>F</Kbd>
+        </TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <ToggleGroupItem
+              value="transition"
+              className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
+            />
+          }
+        >
+          <HugeiconsIcon
+            icon={ArrowRight02Icon}
+            strokeWidth={2}
+            className="size-5"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          Transition — <Kbd>T</Kbd>
         </TooltipContent>
       </Tooltip>
 
       <Separator className="border w-4/6 flex self-center" />
 
       <Tooltip>
-        <TooltipTrigger>
-          <ToggleGroupItem
-            value="delete"
-            className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
-          >
-            <HugeiconsIcon icon={Delete02Icon} strokeWidth={2.5} />
-          </ToggleGroupItem>
+        <TooltipTrigger
+          render={
+            <ToggleGroupItem
+              value="delete"
+              className="w-full h-10 data-pressed:bg-amethyst-500 data-pressed:text-white"
+            />
+          }
+        >
+          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2.5} />
         </TooltipTrigger>
         <TooltipContent side="right">
-          Delete —{" "}
-          <kbd className="ml-1 rounded bg-white/20 px-1 py-0.5 font-mono text-tiny">
-            D
-          </kbd>
+          Delete — <Kbd>D</Kbd>
         </TooltipContent>
       </Tooltip>
 
