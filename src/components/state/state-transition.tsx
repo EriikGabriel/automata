@@ -1,13 +1,30 @@
+import {
+  Delete02Icon,
+  MoreHorizontalCircle01Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { cn } from "@lib/utils"
 import { useAutomaton } from "@store/automaton"
 import { useEdgeEditing } from "@store/edge-editing"
+import {
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@ui/context-menu"
 import {
   BaseEdge,
   EdgeLabelRenderer,
   type EdgeProps,
   getSmoothStepPath,
+  useReactFlow,
 } from "@xyflow/react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { cn } from "@/lib/utils"
 
 export function StageTransition({
   id,
@@ -21,15 +38,23 @@ export function StageTransition({
   selected,
 }: EdgeProps) {
   const updateEdgeLabel = useAutomaton((s) => s.updateEdgeLabel)
+  const removeEdge = useAutomaton((s) => s.removeEdge)
 
   const editingEdgeId = useEdgeEditing((s) => s.editingEdgeId)
   const stopEditing = useEdgeEditing((s) => s.stopEditing)
 
+  const { setEdges } = useReactFlow()
+
   const isEditing = editingEdgeId === id
   const labelStr = typeof label === "string" ? label : ""
   const isEmpty = !labelStr.trim() || labelStr.trim() === "ε"
+  const isEpsilon = labelStr.trim() === "ε"
+
   const inputRef = useRef<HTMLInputElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
   const [hovered, setHovered] = useState(false)
+  const [contextMenuOpen, setContextMenuOpen] = useState(false)
 
   const markerId = `arrow-${id}`
 
@@ -94,11 +119,92 @@ export function StageTransition({
     [saveLabel],
   )
 
+  const handleContextMenuOpenChange = useCallback(
+    (open: boolean) => {
+      setContextMenuOpen(open)
+      if (open && !selected) {
+        setEdges((edges) =>
+          edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === id,
+          })),
+        )
+      }
+    },
+    [id, selected, setEdges],
+  )
+
+  const handleEdgeContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (!selected) {
+        setEdges((edges) =>
+          edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === id,
+          })),
+        )
+      }
+
+      if (buttonRef.current) {
+        const event = new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        })
+        buttonRef.current.dispatchEvent(event)
+      }
+    },
+    [id, selected, setEdges],
+  )
+
+  const handleDeleteEdge = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log("Deleting edge:", id)
+      removeEdge(id)
+    },
+    [id, removeEdge],
+  )
+
+  const handleToggleEpsilon = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        updateEdgeLabel(id, "ε")
+      } else {
+        updateEdgeLabel(id, "a")
+      }
+    },
+    [id, updateEdgeLabel],
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selected) return
+
+      // Shift+E for Empty Transition (epsilon)
+      if (e.shiftKey && e.key === "E") {
+        e.preventDefault()
+        handleToggleEpsilon(!isEpsilon)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [selected, isEpsilon, handleToggleEpsilon])
+
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: SVG element needs context menu for edge interaction
     <g
       tabIndex={-1}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
+      onContextMenu={handleEdgeContextMenu}
     >
       <defs>
         <marker
@@ -129,34 +235,68 @@ export function StageTransition({
         markerEnd={`url(#${markerId})`}
       />
       <EdgeLabelRenderer>
-        <button
-          type="button"
-          className="nodrag nopan pointer-events-auto absolute"
-          style={{
-            transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - 2}px)`,
-          }}
-          onDoubleClick={handleDoubleClick}
+        <ContextMenu
+          open={contextMenuOpen}
+          onOpenChange={handleContextMenuOpenChange}
         >
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              key={id}
-              defaultValue={labelStr}
-              onKeyDown={handleKeyDown}
-              onBlur={handleBlur}
-              className="w-8 bg-transparent text-center text-tiny font-semibold text-slate-600 outline-none"
-            />
-          ) : (
-            <span
-              className={cn(
-                "text-tiny! font-semibold hover:text-amethyst-400 transition-colors duration-150",
-                selected ? "text-amethyst-500" : "text-slate-600",
-              )}
+          <ContextMenuTrigger>
+            <button
+              ref={buttonRef}
+              type="button"
+              className="nodrag nopan pointer-events-auto absolute"
+              style={{
+                transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - 2}px)`,
+              }}
+              onDoubleClick={handleDoubleClick}
             >
-              {label}
-            </span>
-          )}
-        </button>
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  key={id}
+                  defaultValue={labelStr}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleBlur}
+                  className="w-8 bg-transparent text-center text-tiny font-semibold text-slate-600 outline-none"
+                />
+              ) : (
+                <span
+                  className={cn(
+                    "text-tiny! font-semibold hover:text-amethyst-400 transition-colors duration-150",
+                    selected ? "text-amethyst-500" : "text-slate-600",
+                  )}
+                >
+                  {label}
+                </span>
+              )}
+            </button>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuGroup>
+              <ContextMenuLabel>Transition</ContextMenuLabel>
+              <ContextMenuCheckboxItem
+                className="cursor-pointer"
+                checked={isEpsilon}
+                onCheckedChange={handleToggleEpsilon}
+              >
+                <HugeiconsIcon
+                  icon={MoreHorizontalCircle01Icon}
+                  className="text-slate-500"
+                  strokeWidth={2}
+                />
+                Empty Transition (ε)
+                <ContextMenuShortcut>⇧E</ContextMenuShortcut>
+              </ContextMenuCheckboxItem>
+            </ContextMenuGroup>
+            <ContextMenuSeparator />
+            <ContextMenuGroup>
+              <ContextMenuItem variant="destructive" onClick={handleDeleteEdge}>
+                <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                Delete
+                <ContextMenuShortcut>Backspace</ContextMenuShortcut>
+              </ContextMenuItem>
+            </ContextMenuGroup>
+          </ContextMenuContent>
+        </ContextMenu>
       </EdgeLabelRenderer>
     </g>
   )

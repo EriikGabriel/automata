@@ -4,6 +4,7 @@ import {
   Login01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { getStateVariant, isFinalState, isInitialState } from "@lib/state-utils"
 import { useAutomaton } from "@store/automaton"
 import { useSelectedNodesInfo } from "@store/selection"
 import { Badge } from "@ui/badge"
@@ -105,13 +106,6 @@ function TransitionItem({
   )
 }
 
-function getVariant(isInitial: boolean, isFinal: boolean) {
-  if (isInitial && isFinal) return "initial-final" as const
-  if (isInitial) return "initial" as const
-  if (isFinal) return "final" as const
-  return "default" as const
-}
-
 export function StateOptions() {
   const selectedStates = useSelectedNodesInfo()
   const selectedState = selectedStates[0]
@@ -121,12 +115,8 @@ export function StateOptions() {
   const edges = useAutomaton((s) => s.edges)
   const nodes = useAutomaton((s) => s.nodes)
 
-  const isInitial =
-    selectedState?.variant === "initial" ||
-    selectedState?.variant === "initial-final"
-  const isFinal =
-    selectedState?.variant === "final" ||
-    selectedState?.variant === "initial-final"
+  const isInitial = isInitialState(selectedState?.variant)
+  const isFinal = isFinalState(selectedState?.variant)
 
   const handleToggleInitial = useCallback(
     (checked: boolean) => {
@@ -135,11 +125,8 @@ export function StateOptions() {
       if (checked) {
         for (const node of nodes) {
           if (node.id === selectedState.id) continue
-          if (
-            node.data.variant === "initial" ||
-            node.data.variant === "initial-final"
-          ) {
-            const wasFinal = node.data.variant === "initial-final"
+          if (isInitialState(node.data.variant)) {
+            const wasFinal = isFinalState(node.data.variant)
             updateNodeData(node.id, {
               variant: wasFinal ? "final" : "default",
             })
@@ -148,7 +135,7 @@ export function StateOptions() {
       }
 
       updateNodeData(selectedState.id, {
-        variant: getVariant(checked, isFinal),
+        variant: getStateVariant(checked, isFinal),
       })
     },
     [selectedState, isFinal, nodes, updateNodeData],
@@ -158,7 +145,7 @@ export function StateOptions() {
     (checked: boolean) => {
       if (!selectedState) return
       updateNodeData(selectedState.id, {
-        variant: getVariant(isInitial, checked),
+        variant: getStateVariant(isInitial, checked),
       })
     },
     [selectedState, isInitial, updateNodeData],

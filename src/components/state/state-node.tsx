@@ -1,8 +1,33 @@
+import {
+  CheckmarkBadge01Icon,
+  Delete02Icon,
+  Login01Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { getStateVariant, isFinalState, isInitialState } from "@lib/state-utils"
 import { cn } from "@lib/utils"
 import { useAutomaton } from "@store/automaton"
 import { useNodeEditing } from "@store/node-editing"
+import { useSelection } from "@store/selection"
 import { useToolbar } from "@store/toolbar"
-import { Handle, type Node, type NodeProps, Position } from "@xyflow/react"
+import {
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@ui/context-menu"
+import {
+  Handle,
+  type Node,
+  type NodeProps,
+  Position,
+  useReactFlow,
+} from "@xyflow/react"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 
 type StateNodeData = {
@@ -66,13 +91,17 @@ export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
   const editingNodeId = useNodeEditing((s) => s.editingNodeId)
   const stopEditing = useNodeEditing((s) => s.stopEditing)
   const updateNodeData = useAutomaton((s) => s.updateNodeData)
+  const removeNode = useAutomaton((s) => s.removeNode)
   const edges = useAutomaton((s) => s.edges)
+
+  const { setNodes } = useReactFlow()
+  const setSelectedNodeIds = useSelection((s) => s.setSelectedNodeIds)
 
   const isEditing = editingNodeId === id
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const isInitial = variant === "initial" || variant === "initial-final"
-  const isFinal = variant === "final" || variant === "initial-final"
+  const isInitial = isInitialState(variant)
+  const isFinal = isFinalState(variant)
 
   const arrowPosition = useMemo<ArrowPosition>(() => {
     const hasLeftConnection = edges.some(
@@ -137,100 +166,224 @@ export function StateNode({ id, data, selected }: NodeProps<StateNodeType>) {
     [saveLabel],
   )
 
+  const handleToggleInitial = useCallback(
+    (checked: boolean) => {
+      const nodes = useAutomaton.getState().nodes
+
+      if (checked) {
+        for (const node of nodes) {
+          if (node.id === id) continue
+          if (isInitialState(node.data.variant)) {
+            const wasFinal = isFinalState(node.data.variant)
+            updateNodeData(node.id, {
+              variant: wasFinal ? "final" : "default",
+            })
+          }
+        }
+      }
+
+      updateNodeData(id, {
+        variant: getStateVariant(checked, isFinal),
+      })
+    },
+    [id, isFinal, updateNodeData],
+  )
+
+  const handleToggleFinal = useCallback(
+    (checked: boolean) => {
+      updateNodeData(id, {
+        variant: getStateVariant(isInitial, checked),
+      })
+    },
+    [id, isInitial, updateNodeData],
+  )
+
+  const handleDeleteNode = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log("Deleting node:", id)
+      removeNode(id)
+      useSelection.getState().removeSelectedNodeId(id)
+    },
+    [id, removeNode],
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selected) return
+
+      // Shift+Q for Initial State
+      if (e.shiftKey && e.key === "Q") {
+        e.preventDefault()
+        handleToggleInitial(!isInitial)
+      }
+
+      // Shift+E for Acceptance State
+      if (e.shiftKey && e.key === "E") {
+        e.preventDefault()
+        handleToggleFinal(!isFinal)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [selected, isInitial, isFinal, handleToggleInitial, handleToggleFinal])
+
   const config = arrowConfigs[arrowPosition]
 
+  const handleContextMenuOpenChange = useCallback(
+    (open: boolean) => {
+      if (open && !selected) {
+        setNodes((nodes) =>
+          nodes.map((node) => ({
+            ...node,
+            selected: node.id === id,
+          })),
+        )
+        setSelectedNodeIds([id])
+      }
+    },
+    [id, selected, setNodes, setSelectedNodeIds],
+  )
+
   return (
-    <div className="group/state flex items-center justify-center relative">
-      {isInitial && (
-        <svg
-          width={config.width}
-          height={config.height}
-          viewBox={config.viewBox}
-          fill="none"
-          className={config.className}
-          role="img"
-          aria-labelledby={`initial-arrow-title-${id}`}
-        >
-          <title id={`initial-arrow-title-${id}`}>Initial state arrow</title>
-          <path
-            d={config.linePath}
-            strokeWidth="2"
-            strokeLinecap="round"
-            className={cn(
-              "transition-colors duration-150 group-hover/state:stroke-amethyst-400",
-              selected ? "stroke-amethyst-500" : "stroke-slate-400",
-            )}
-          />
-          <path
-            d={config.arrowHeadPath}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            className={cn(
-              "transition-colors duration-150 group-hover/state:stroke-amethyst-400",
-              selected ? "stroke-amethyst-500" : "stroke-slate-400",
-            )}
-          />
-        </svg>
-      )}
-
-      <div
-        className={cn(
-          "relative",
-          isFinal &&
-            "flex justify-center items-center border-3 rounded-full p-0.75 transition-colors duration-150 group-hover/state:border-amethyst-400",
-          isFinal &&
-            (selected || isTransitionSource
-              ? "border-amethyst-500"
-              : "border-slate-300"),
-        )}
-      >
-        {isTransitionSource && (
-          <div className="absolute -inset-1.5 rounded-full border-2 border-amethyst-400 animate-pulse pointer-events-none" />
-        )}
-
-        <button
-          type="button"
-          className={cn(
-            "bg-white border-2 size-10 rounded-full p-3 flex items-center justify-center text-xs font-bold transition-colors duration-150 group-hover/state:border-amethyst-400",
-            selected || isTransitionSource
-              ? "bg-amethyst-500 border-amethyst-300 text-white group-hover/state:bg-amethyst-400 group-hover/state:border-amethyst-400"
-              : "bg-white border-slate-300",
-            isFinal ? "size-9" : "",
+    <ContextMenu onOpenChange={handleContextMenuOpenChange}>
+      <ContextMenuTrigger>
+        <div className="group/state flex items-center justify-center relative">
+          {isInitial && (
+            <svg
+              width={config.width}
+              height={config.height}
+              viewBox={config.viewBox}
+              fill="none"
+              className={config.className}
+              role="img"
+              aria-labelledby={`initial-arrow-title-${id}`}
+            >
+              <title id={`initial-arrow-title-${id}`}>
+                Initial state arrow
+              </title>
+              <path
+                d={config.linePath}
+                strokeWidth="2"
+                strokeLinecap="round"
+                className={cn(
+                  "transition-colors duration-150 group-hover/state:stroke-amethyst-400",
+                  selected ? "stroke-amethyst-500" : "stroke-slate-400",
+                )}
+              />
+              <path
+                d={config.arrowHeadPath}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                className={cn(
+                  "transition-colors duration-150 group-hover/state:stroke-amethyst-400",
+                  selected ? "stroke-amethyst-500" : "stroke-slate-400",
+                )}
+              />
+            </svg>
           )}
-          onDoubleClick={handleDoubleClick}
-        >
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              defaultValue={label}
-              onKeyDown={handleKeyDown}
-              onBlur={handleBlur}
-              maxLength={4}
-              max={4}
+
+          <div
+            className={cn(
+              "relative",
+              isFinal &&
+                "flex justify-center items-center border-3 rounded-full p-0.75 transition-colors duration-150 group-hover/state:border-amethyst-400",
+              isFinal &&
+                (selected || isTransitionSource
+                  ? "border-amethyst-500"
+                  : "border-slate-300"),
+            )}
+          >
+            {isTransitionSource && (
+              <div className="absolute -inset-1.5 rounded-full border-2 border-amethyst-400 animate-pulse pointer-events-none" />
+            )}
+
+            <button
+              type="button"
               className={cn(
-                "w-8 bg-transparent text-center text-xs font-bold outline-none",
+                "bg-white border-2 size-10 rounded-full p-3 flex items-center justify-center text-xs font-bold transition-colors duration-150 group-hover/state:border-amethyst-400",
                 selected || isTransitionSource
-                  ? "text-white placeholder:text-white/50"
-                  : "text-slate-700 placeholder:text-slate-300",
+                  ? "bg-amethyst-500 border-amethyst-300 text-white group-hover/state:bg-amethyst-400 group-hover/state:border-amethyst-400"
+                  : "bg-white border-slate-300",
+                isFinal ? "size-9" : "",
               )}
-            />
-          ) : (
-            label
-          )}
-        </button>
+              onDoubleClick={handleDoubleClick}
+            >
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  defaultValue={label}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleBlur}
+                  maxLength={4}
+                  max={4}
+                  className={cn(
+                    "w-8 bg-transparent text-center text-xs font-bold outline-none",
+                    selected || isTransitionSource
+                      ? "text-white placeholder:text-white/50"
+                      : "text-slate-700 placeholder:text-slate-300",
+                  )}
+                />
+              ) : (
+                label
+              )}
+            </button>
 
-        {positions.map(({ position, id }) => (
-          <Handle
-            key={id}
-            id={id}
-            type="source"
-            position={position}
-            className="size-2! rounded-full! bg-slate-300! border-none! opacity-0 hover:opacity-100 transition-opacity duration-200"
-          />
-        ))}
-      </div>
-    </div>
+            {positions.map(({ position, id }) => (
+              <Handle
+                key={id}
+                id={id}
+                type="source"
+                position={position}
+                className="size-2! rounded-full! bg-slate-300! border-none! opacity-0 hover:opacity-100 transition-opacity duration-200"
+              />
+            ))}
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuGroup>
+          <ContextMenuLabel>State Props</ContextMenuLabel>
+          <ContextMenuCheckboxItem
+            className="cursor-pointer"
+            checked={isInitial}
+            onCheckedChange={handleToggleInitial}
+          >
+            <HugeiconsIcon
+              icon={Login01Icon}
+              className="text-slate-500"
+              strokeWidth={2}
+            />
+            Initial State
+            <ContextMenuShortcut>⇧Q</ContextMenuShortcut>
+          </ContextMenuCheckboxItem>
+          <ContextMenuCheckboxItem
+            className="cursor-pointer"
+            checked={isFinal}
+            onCheckedChange={handleToggleFinal}
+          >
+            <HugeiconsIcon
+              icon={CheckmarkBadge01Icon}
+              className="text-slate-500"
+              strokeWidth={2}
+            />
+            Acceptance State
+            <ContextMenuShortcut>⇧E</ContextMenuShortcut>
+          </ContextMenuCheckboxItem>
+        </ContextMenuGroup>
+        <ContextMenuSeparator />
+        <ContextMenuGroup>
+          <ContextMenuItem variant="destructive" onClick={handleDeleteNode}>
+            <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+            Delete
+            <ContextMenuShortcut>Backspace</ContextMenuShortcut>
+          </ContextMenuItem>
+        </ContextMenuGroup>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
