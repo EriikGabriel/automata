@@ -1,0 +1,27 @@
+{
+	"name": "backend",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "bun run --watch --env-file=.env src/index.ts",
+		"start": "bun src/index.ts"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.2",
+		"@types/bun": "latest",
+		"@types/node": "^26.1.0",
+		"tsx": "^4.23.0"
+	},
+	"peerDependencies": {
+		"typescript": "^6.0.3"
+	},
+	"dependencies": {
+		"@fastify/cors": "^11.2.0",
+		"@fastify/swagger": "^9.7.0",
+		"@scalar/fastify-api-reference": "^1.62.4",
+		"fastify": "^5.10.0",
+		"fastify-type-provider-zod": "^7.0.0",
+		"zod": "^4.4.3"
+	}
+}
