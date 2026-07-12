@@ -4,6 +4,7 @@ import {
 	ArrowRight01Icon,
 	DashboardSpeed02Icon,
 	NextIcon,
+	PauseIcon,
 	PlayCircleIcon,
 	PreviousIcon,
 } from "@hugeicons/core-free-icons";
@@ -11,16 +12,39 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useSimulate } from "@store/simulate";
 import { Button } from "@ui/button";
 import { Progress } from "@ui/progress";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type Speed = 1 | 2;
+const DELAY: Record<Speed, number> = { 1: 1400, 2: 700 };
 
 export function Playbar() {
 	const input = useSimulate((s) => s.input);
 	const step = useSimulate((s) => s.step);
 	const setStep = useSimulate((s) => s.setStep);
+	const isPlaying = useSimulate((s) => s.isPlaying);
+	const setIsPlaying = useSimulate((s) => s.setIsPlaying);
+	const result = useSimulate((s) => s.result);
 	const totalSteps = input.length;
 
+	const [speed, setSpeed] = useState<Speed>(1);
 	const charRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
+	// Auto-advance: move setState calls inside the timeout callback (async), not in effect body
+	useEffect(() => {
+		if (!isPlaying) return;
+
+		const timeout = setTimeout(() => {
+			if (step >= totalSteps - 1) {
+				setIsPlaying(false);
+			} else {
+				setStep(step + 1);
+			}
+		}, DELAY[speed]);
+
+		return () => clearTimeout(timeout);
+	}, [isPlaying, step, totalSteps, speed, setStep, setIsPlaying]);
+
+	// Scroll active char into view
 	useEffect(() => {
 		charRefs.current[step]?.scrollIntoView({
 			block: "nearest",
@@ -28,10 +52,37 @@ export function Playbar() {
 		});
 	}, [step]);
 
-	const prev = () => setStep(Math.max(0, step - 1));
-	const next = () => setStep(Math.min(totalSteps - 1, step + 1));
-	const toStart = () => setStep(0);
-	const toEnd = () => setStep(totalSteps - 1);
+	const pause = () => setIsPlaying(false);
+
+	const togglePlay = () => {
+		if (step >= totalSteps - 1) {
+			setStep(0);
+			setIsPlaying(true);
+		} else {
+			setIsPlaying(!isPlaying);
+		}
+	};
+
+	const prev = () => {
+		pause();
+		setStep(Math.max(0, step - 1));
+	};
+	const next = () => {
+		pause();
+		setStep(Math.min(totalSteps - 1, step + 1));
+	};
+	const toStart = () => {
+		pause();
+		setStep(0);
+	};
+	const toEnd = () => {
+		pause();
+		setStep(totalSteps - 1);
+	};
+
+	const toggleSpeed = () => setSpeed((s) => (s === 1 ? 2 : 1));
+
+	const canPlay = result !== null && totalSteps > 0;
 
 	return (
 		<div className="bg-white border-t h-20 w-full absolute bottom-0 z-5 flex justify-center items-center px-30 gap-10">
@@ -39,8 +90,9 @@ export function Playbar() {
 				<Button
 					variant="ghost"
 					size="icon-lg"
-					className=" hover:*:text-amethyst-500"
+					className="hover:*:text-amethyst-500"
 					onClick={toStart}
+					disabled={!canPlay}
 				>
 					<HugeiconsIcon
 						icon={PreviousIcon}
@@ -54,6 +106,7 @@ export function Playbar() {
 					size="icon-lg"
 					className="hover:*:text-amethyst-500"
 					onClick={prev}
+					disabled={!canPlay}
 				>
 					<HugeiconsIcon
 						icon={ArrowLeft01Icon}
@@ -66,12 +119,14 @@ export function Playbar() {
 					variant="ghost"
 					size="icon-lg"
 					className="hover:*:text-amethyst-500"
+					onClick={togglePlay}
+					disabled={!canPlay}
 				>
 					<HugeiconsIcon
-						icon={PlayCircleIcon}
+						icon={isPlaying ? PauseIcon : PlayCircleIcon}
 						strokeWidth={1.5}
-						className="text-slate-500 hover:fill-slate-500 size-8"
-						aria-label="Play"
+						className="text-slate-500 size-8"
+						aria-label={isPlaying ? "Pause" : "Play"}
 					/>
 				</Button>
 				<Button
@@ -79,11 +134,12 @@ export function Playbar() {
 					size="icon-lg"
 					className="hover:*:text-amethyst-500"
 					onClick={next}
+					disabled={!canPlay}
 				>
 					<HugeiconsIcon
 						icon={ArrowRight01Icon}
 						strokeWidth={2}
-						className="text-slate-500 hover:fill-slate-500 size-6"
+						className="text-slate-500 size-6"
 						aria-label="Next"
 					/>
 				</Button>
@@ -92,11 +148,12 @@ export function Playbar() {
 					size="icon-lg"
 					className="hover:*:text-amethyst-500"
 					onClick={toEnd}
+					disabled={!canPlay}
 				>
 					<HugeiconsIcon
 						icon={NextIcon}
 						strokeWidth={2}
-						className="text-slate-500 hover:fill-slate-500 size-6"
+						className="text-slate-500 size-6"
 						aria-label="End"
 					/>
 				</Button>
@@ -111,7 +168,10 @@ export function Playbar() {
 								ref={(el) => {
 									charRefs.current[i] = el;
 								}}
-								onClick={() => setStep(i)}
+								onClick={() => {
+									pause();
+									setStep(i);
+								}}
 								className={
 									"cursor-pointer " +
 									(i === step
@@ -138,14 +198,15 @@ export function Playbar() {
 				variant="secondary"
 				size="lg"
 				className="border border-slate-300 text-slate-500 w-40"
+				onClick={toggleSpeed}
 			>
 				<HugeiconsIcon
 					icon={DashboardSpeed02Icon}
 					strokeWidth={1.5}
-					className="text-slate-500 hover:fill-slate-500 size-6"
-					aria-label="Start"
+					className="text-slate-500 size-6"
+					aria-label="Speed"
 				/>
-				2x Speed
+				{speed}x Speed
 			</Button>
 		</div>
 	);

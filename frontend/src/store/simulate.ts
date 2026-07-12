@@ -17,23 +17,28 @@ type SimulateStatus = "idle" | "loading" | "success" | "error";
 type SimulateState = {
 	input: string;
 	step: number;
+	isPlaying: boolean;
 	status: SimulateStatus;
 	error: string | null;
 	result: SimulationResult | null;
 	setInput: (input: string) => void;
 	setStep: (step: number) => void;
+	setIsPlaying: (playing: boolean) => void;
 	runSimulation: () => Promise<void>;
 };
 
 export const useSimulate = create<SimulateState>((set) => ({
 	input: "",
 	step: 0,
+	isPlaying: false,
 	status: "idle",
 	error: null,
 	result: null,
 
-	setInput: (input) => set({ input, step: 0, result: null, status: "idle" }),
+	setInput: (input) =>
+		set({ input, step: 0, isPlaying: false, result: null, status: "idle" }),
 	setStep: (step) => set({ step }),
+	setIsPlaying: (isPlaying) => set({ isPlaying }),
 
 	runSimulation: async () => {
 		const { input } = useSimulate.getState();
