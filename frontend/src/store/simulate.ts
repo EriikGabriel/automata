@@ -24,6 +24,7 @@ type SimulateState = {
 	setInput: (input: string) => void;
 	setStep: (step: number) => void;
 	setIsPlaying: (playing: boolean) => void;
+	reset: () => void;
 	runSimulation: () => Promise<void>;
 };
 
@@ -39,6 +40,15 @@ export const useSimulate = create<SimulateState>((set) => ({
 		set({ input, step: 0, isPlaying: false, result: null, status: "idle" }),
 	setStep: (step) => set({ step }),
 	setIsPlaying: (isPlaying) => set({ isPlaying }),
+	reset: () =>
+		set({
+			input: "",
+			step: 0,
+			isPlaying: false,
+			result: null,
+			status: "idle",
+			error: null,
+		}),
 
 	runSimulation: async () => {
 		const { input } = useSimulate.getState();

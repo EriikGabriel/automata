@@ -25,9 +25,8 @@ export function SimulateInput() {
 			<InputGroup
 				className={cn(
 					"w-full h-full border-slate-400/50 bg-slate-200/60",
-					result?.accepted
-						? "bg-green-200 border-green-500"
-						: "bg-red-200 border-red-500",
+					result?.accepted === true && "bg-green-200 border-green-500",
+					result?.accepted === false && "bg-red-200 border-red-500",
 				)}
 			>
 				<InputGroupAddon>Input:</InputGroupAddon>
