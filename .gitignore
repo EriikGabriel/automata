@@ -32,3 +32,6 @@ lerna-debug.log*
 
 # TanStack Router generated files
 .tanstack/
+
+# Vite cache
+.vite/
