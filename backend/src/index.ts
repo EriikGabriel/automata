@@ -8,7 +8,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod"
-import { z } from "zod"
+import { routes } from "./routes"
 
 const server = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -36,11 +36,9 @@ await server.register(ScalarApiReference, {
   routePrefix: "/docs",
 })
 
-server.get("/", async () => {
-  return { message: "Hello, World!" }
-})
+server.register(routes)
 
 server.listen({ port: 3000, host: "0.0.0.0" }).then(() => {
-  console.log("HTTP Server running on http://localhost:3000")
-  console.log("API documentation available at http://localhost:3000/docs")
+  console.log("🖥️ HTTP Server running on http://localhost:3000")
+  console.log("🖥️ API documentation available at http://localhost:3000/docs")
 })
