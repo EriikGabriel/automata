@@ -5,6 +5,7 @@ export type Step = {
 	currentStates: string[];
 	symbol: string;
 	nextStates: string[];
+	isInvalidTransition?: boolean;
 };
 
 export type SimulationResult = {

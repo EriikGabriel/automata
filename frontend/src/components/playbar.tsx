@@ -24,7 +24,7 @@ export function Playbar() {
 	const isPlaying = useSimulate((s) => s.isPlaying);
 	const setIsPlaying = useSimulate((s) => s.setIsPlaying);
 	const result = useSimulate((s) => s.result);
-	const totalSteps = input.length;
+	const totalSteps = result?.steps.length ?? input.length;
 
 	const [speed, setSpeed] = useState<Speed>(1);
 	const charRefs = useRef<(HTMLSpanElement | null)[]>([]);

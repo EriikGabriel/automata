@@ -4,12 +4,25 @@ export type Step = {
 	currentStates: string[];
 	symbol: string;
 	nextStates: string[];
+	isInvalidTransition?: boolean;
 };
 
 export type SimulationResult = {
 	accepted: boolean;
 	steps: Step[];
 };
+
+function getAlphabet(table: TransitionTable): Set<string> {
+	const alphabet = new Set<string>();
+
+	for (const stateTransitions of Object.values(table)) {
+		for (const symbol of Object.keys(stateTransitions)) {
+			if (symbol !== "ε") alphabet.add(symbol);
+		}
+	}
+
+	return alphabet;
+}
 
 /** Returns all states reachable from the given states via ε-transitions only. */
 function epsilonClosure(states: string[], table: TransitionTable): string[] {
@@ -43,10 +56,25 @@ export function simulate(
 	table: TransitionTable,
 ): SimulationResult {
 	const steps: Step[] = [];
+	const alphabet = getAlphabet(table);
 
 	let currentStates = epsilonClosure([initial], table);
+	let invalidTransition = false;
 
 	for (const symbol of input) {
+		if (!alphabet.has(symbol)) {
+			invalidTransition = true;
+
+			steps.push({
+				currentStates,
+				symbol,
+				nextStates: currentStates,
+				isInvalidTransition: true,
+			});
+
+			break;
+		}
+
 		const reachable = move(currentStates, symbol, table);
 		const nextStates = epsilonClosure(reachable, table);
 
@@ -54,7 +82,16 @@ export function simulate(
 		currentStates = nextStates;
 	}
 
-	const accepted = currentStates.some((state) => finals.includes(state));
+	const accepted =
+		!invalidTransition && currentStates.some((state) => finals.includes(state));
+
+	if (!invalidTransition) {
+		steps.push({
+			currentStates,
+			symbol: "END",
+			nextStates: [],
+		});
+	}
 
 	return { accepted, steps };
 }
